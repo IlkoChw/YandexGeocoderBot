@@ -1,0 +1,58 @@
+version: '3.4'
+
+volumes:
+    pgdata:
+        driver: local
+
+services:
+    postgres:
+        restart: always
+        image: postgres:12.0-alpine
+        ports:
+            - 5432:5432
+        volumes:
+            - pgdata:/var/lib/postgresql/data
+        env_file:
+            - .env
+    nginx:
+        restart: always
+        image: nginx:alpine
+        ports:
+            - 80:80
+        environment:
+            - SERVER_NAME=localhost
+        volumes:
+            - ./app/static:/static
+            - ./app/media:/media
+            - ./logs:/logs
+            - ./docker/nginx:/etc/nginx/conf.d
+        depends_on:
+            - admin
+    admin:
+        restart: always
+        build:
+            context: .
+            dockerfile: docker/Dockerfile
+        volumes:
+            - ./app:/app
+        command: >
+            bash -c "python manage.py collectstatic --noinput
+            && python manage.py migrate --noinput || exit 1
+            && gunicorn config.wsgi:application --bind 0.0.0.0:8000"
+        env_file:
+            - .env
+        depends_on:
+            - postgres
+    bot:
+        depends_on:
+            - admin
+        restart: always
+        build:
+            context: .
+            dockerfile: docker/Dockerfile
+        volumes:
+            - .:/app
+        env_file:
+            - .env
+
+        command: python app/manage.py run_bot
