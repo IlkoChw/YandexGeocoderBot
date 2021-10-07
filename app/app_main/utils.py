@@ -16,7 +16,7 @@ def create_groups_and_permissions():
         'view_searcharea',
         'delete_searchresult',
         'view_searchresult']
-    group1_codenames = group2_codenames[-2:]
+    group1_codenames = group2_codenames[-3:]
 
     group2_permissions = Permission.objects.filter(
         content_type__app_label='app_main', content_type__model__in=content_types, codename__in=group2_codenames)
